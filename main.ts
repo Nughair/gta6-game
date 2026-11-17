@@ -12,6 +12,10 @@
 // Outside the grader's container, MAKEFUN_OUTPUT_DIR stands in for /output:
 //   mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
 
+// Solmar Bay — an original open-world crime game built for make.fun gta6-01.
+// The game is this directory's game/ folder (three.js open world: procedural city,
+// drivable cars, traffic, pedestrians, wanted police, 5 story missions, combat,
+// HUD with minimap, save system, synthesized sound). It hands itself in below.
 import { cpSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';

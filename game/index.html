@@ -3,17 +3,86 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Block Dodger</title>
+<title>Solmar Bay — Open-World Crime</title>
 <style>
-  html, body { margin: 0; height: 100%; overflow: hidden; background: #11141b; }
-  #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
-  /* Read aloud, never shown: the status line screen readers announce. */
-  #status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0c121a; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+  #scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  .hidden { display: none !important; }
+  /* HUD */
+  #hud { position: fixed; inset: 0; pointer-events: none; color: #eef1f5; z-index: 5; }
+  #topleft { position: absolute; top: 14px; left: 14px; display: flex; flex-direction: column; gap: 6px; }
+  #health-bar { width: 220px; height: 14px; background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.35); border-radius: 3px; overflow: hidden; }
+  #health-fill { height: 100%; width: 100%; background: #3aa86a; }
+  #health-row { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
+  #cash { font-size: 22px; font-weight: 800; color: #7dd87d; text-shadow: 0 1px 3px rgba(0,0,0,0.9); }
+  #stars { font-size: 22px; letter-spacing: 2px; color: #ffd23a; text-shadow: 0 1px 3px rgba(0,0,0,0.9); }
+  #objective { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); max-width: 560px; text-align: center; font-size: 16px; font-weight: 700; background: rgba(0,0,0,0.55); padding: 8px 16px; border-radius: 4px; text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
+  #timer { position: absolute; top: 62px; left: 50%; transform: translateX(-50%); font-size: 26px; font-weight: 800; color: #ffd23a; text-shadow: 0 1px 3px rgba(0,0,0,0.9); }
+  #minimap { position: absolute; top: 14px; right: 14px; width: 200px; height: 200px; border: 2px solid rgba(255,255,255,0.5); border-radius: 4px; background: rgba(12,18,26,0.85); }
+  #message { position: absolute; bottom: 110px; left: 50%; transform: translateX(-50%); max-width: 640px; text-align: center; font-size: 17px; font-weight: 600; background: rgba(0,0,0,0.6); padding: 10px 18px; border-radius: 4px; opacity: 0; transition: opacity 0.4s; }
+  #speed { position: absolute; bottom: 18px; right: 20px; font-size: 26px; font-weight: 800; text-shadow: 0 1px 3px rgba(0,0,0,0.9); }
+  #controls-hint { position: absolute; bottom: 18px; left: 18px; font-size: 13px; color: rgba(255,255,255,0.75); text-shadow: 0 1px 2px rgba(0,0,0,0.9); }
+  #crosshair { position: absolute; top: 50%; left: 50%; width: 22px; height: 22px; margin: -11px 0 0 -11px; display: none; }
+  #crosshair::before, #crosshair::after { content: ""; position: absolute; background: rgba(255,255,255,0.9); }
+  #crosshair::before { left: 10px; top: 0; width: 2px; height: 22px; }
+  #crosshair::after { top: 10px; left: 0; height: 2px; width: 22px; }
+  /* Screens */
+  .screen { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: #eef1f5; background: linear-gradient(180deg, rgba(8,14,22,0.72), rgba(8,14,22,0.55)); z-index: 10; }
+  .screen h1 { font-size: 64px; margin: 0 0 4px; letter-spacing: 6px; color: #ffd23a; text-shadow: 0 3px 18px rgba(0,0,0,0.9); }
+  .screen h2 { font-size: 20px; margin: 0 0 18px; font-weight: 600; color: #ffd98a; }
+  .screen p { max-width: 620px; font-size: 16px; line-height: 1.55; margin: 0 0 18px; padding: 0 20px; }
+  .screen .keys { font-size: 14px; color: #c8d0da; line-height: 1.8; }
+  .screen button { pointer-events: auto; font-size: 18px; font-weight: 700; padding: 12px 30px; margin: 6px; border: none; border-radius: 4px; background: #ffd23a; color: #1a1a1a; cursor: pointer; }
+  .screen button:hover { background: #ffe06a; }
+  .screen button.secondary { background: rgba(255,255,255,0.16); color: #eef1f5; border: 1px solid rgba(255,255,255,0.4); }
 </style>
 </head>
 <body>
-<canvas id="game" aria-label="Block Dodger: move the paddle left and right to dodge falling blocks and catch coins"></canvas>
-<p id="status" role="status" aria-live="polite"></p>
+<canvas id="scene" aria-label="Solmar Bay: an open-world crime game. Drive, steal cars, dodge the police, run missions."></canvas>
+
+<div id="hud" class="hidden">
+  <div id="topleft">
+    <div id="health-row"><div id="health-bar"><div id="health-fill"></div></div><span id="health-text">100</span></div>
+    <div id="cash">$0</div>
+    <div id="stars">☆☆☆☆☆</div>
+  </div>
+  <div id="objective">Follow the story — your first job is waiting</div>
+  <div id="timer"></div>
+  <canvas id="minimap" width="200" height="200"></canvas>
+  <div id="message"></div>
+  <div id="speed"></div>
+  <div id="controls-hint">WASD move &amp; drive · Mouse look · E enter / exit car · Click shoot · Shift sprint · Space brake · M next job · P pause</div>
+  <div id="crosshair"></div>
+</div>
+
+<div id="title-screen" class="screen">
+  <h1>SOLMAR BAY</h1>
+  <h2>An open-world crime story</h2>
+  <p id="story-text"></p>
+  <p class="keys">WASD — move &amp; drive &nbsp;·&nbsp; Mouse — look &nbsp;·&nbsp; E — steal / exit car<br>
+  Click — shoot &nbsp;·&nbsp; Shift — sprint &nbsp;·&nbsp; Space — brake &nbsp;·&nbsp; M — next job &nbsp;·&nbsp; P — pause</p>
+  <div>
+    <button id="start-button">Start New Game</button>
+    <button id="continue-button" class="secondary">Continue</button>
+  </div>
+</div>
+
+<div id="pause-screen" class="screen hidden">
+  <h1>PAUSED</h1>
+  <p>Solmar Bay waits for no one — except right now.</p>
+  <div>
+    <button id="resume-button">Resume</button>
+    <button id="restart-button" class="secondary">Restart</button>
+    <button id="quit-button" class="secondary">Save &amp; Quit to Title</button>
+  </div>
+</div>
+
+<div id="end-screen" class="screen hidden">
+  <h1 id="end-title">BUSTED</h1>
+  <p id="end-text"></p>
+  <div><button id="end-button">Try Again</button></div>
+</div>
+
 <script type="module" src="./src/main.js"></script>
 </body>
 </html>
